@@ -2,7 +2,8 @@
 
 `cassandra-repair` will iterate through all keyspaces and repair each column_family individually on each cassandra node.
 
-REQUIRED: This requires that this process reach each cassandra node to execute `nodetool` and `cqlsh` commands.
+### Requirements
+This requires that this process reach each cassandra node to execute `nodetool` and `cqlsh` commands. You must include **ALL** Cassandra nodes. Failure to do so will result in a portion of the ring not being repaired and data inconsistencies.
 
 Fill in config.yaml with your cassandra nodes.
 ```
