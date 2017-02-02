@@ -1,15 +1,8 @@
-ip: cassandra-node-01
-retries: 5
+connect: 10.1.36.199
+timeout: 300
+retries: 3
 hosts:
-  - 10.0.1.1
-  - 10.0.1.1
-  - 10.0.1.1
-  - 10.0.2.1
-  - 10.0.2.1
-  - 10.0.2.1
-  - 10.0.3.1
-  - 10.0.3.1
-  - 10.0.3.1
-
-blacklist:
-  - example_keyspace
+  - 10.1.36.199
+  - 10.1.36.4
+  - 10.1.36.222
+redis: 'localhost:6379'
