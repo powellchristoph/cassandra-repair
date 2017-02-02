@@ -7,7 +7,12 @@ This requires that this process reach each cassandra node to execute `nodetool` 
 
 Fill in config.yaml with your cassandra nodes.
 ```
-ip: <any cassandra node>
+# Default values included. The only required setting is "hosts"
+nodetool_path: /usr/bin/nodetool
+connect: <First host in hosts>
+timeout: 3600
+retries: 3
+redis: 'localhost:6379'
 hosts:
     - list
     - all
@@ -28,3 +33,21 @@ optional arguments:
   -h, --help            show this help message and exit
   --config CONFIG_FILE
 ```
+
+* `hosts` - yaml list of cassandra nodes. You must include all nodes. This is a required configuration setting.
+* `nodetool_path` - path to nodetool
+* `connect` - The cassandra node that will be queried for keyspace/columnfamily information. Default is the first host from the hosts list.
+* `timeout` - Repairs are notorious for hanging. This will kill the repair job if it extents past this value in seconds. Currently, timed out jobs are not retried. Default: 3600 sec
+* `retries` - The number of times the job will retry a failure.
+* `redis` - The redis server to connect too.
+* `blacklist` - List of keyspaces not to repair. They will be skipped.
+
+### Redis
+Redis support has been added to maintain state between runs. This state can then be used externally to monitor your Repair.
+Currently supported values:
+* `REPAIR_STATUS` - Current status of the repair job. `completed`, `running`, `error: some error`
+* `REPAIR_START_TIME` - The time the repair started in epoch.
+* `REPAIR_CURRENT_JOB` - The current `host/keyspace.columnfamily` that is being repaired.
+* `REPAIR_FAILED_JOBS` - Json encoded list of failed jobs. `["host/keyspace.columnfamily"]`
+* `REPAIR_TOTAL_TIME` - The total time of the repair in epoch.
+* `REPAIR_LAST_SUCCESSFUL_RUN` - The epoch timestamp of the last successful repair.
