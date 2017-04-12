@@ -87,7 +87,7 @@ class RepairManager():
             output = subprocess.check_output(cmd).strip().split()
         except subprocess.CalledProcessError as err:
             self._logger.critical("Unable to connect to cassandra at {}".format(self._cqlsh_ip))
-            self._redis.set("REPAIR_STATUS", "error: unable to connect to cassandra")
+            self._redis.set("REPAIR_STATUS", "error")
             exit(1)
 
         formatted_output = self._decode(output)
@@ -151,7 +151,7 @@ class RepairManager():
         self._redis.set("REPAIR_TOTAL_TIME", total_time)
 
         if self._failures:
-            self._redis.set("REPAIR_STATUS", "error: there were {} failures".format(len(self._failures)))
+            self._redis.set("REPAIR_STATUS", "error")
             self._logger.error("Repair completed with {} failures in {} seconds.".format(len(self._failures), str(timedelta(seconds=total_time))))
             for f in self._failures:
                 self._logger.error("Failed: {}".format(f))
