@@ -5,5 +5,5 @@
 - [ ] Store averaged timeout per repair in redis
 - [x] Store repair statuses in redis - 2/2/2017
 - [ ] Retry all failures again
-- [ ] Order repairs by oldest successful repair time (Ensure failures are done first)
+- [ ] Order repairs by previous failures first.
 - [ ] Seed timeout values in config file for new redis
