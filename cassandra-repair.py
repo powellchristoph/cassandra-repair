@@ -9,7 +9,7 @@ import subprocess
 import time
 import yaml
 
-from collections import OrderedDict()
+from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum
 from sys import argv, exit
