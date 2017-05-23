@@ -9,6 +9,7 @@ import subprocess
 import time
 import yaml
 
+from collections import OrderedDict()
 from datetime import timedelta
 from enum import Enum
 from sys import argv, exit
@@ -75,7 +76,7 @@ class RepairManager():
 
     def _get_keyspace_info(self):
         self._logger.info("Gathering cassandra keyspace information.")
-        info = {}
+        info = OrderedDict()
         keyspaces = self._get_keyspaces()
         for k in keyspaces:
             info[k] = self._get_columnfamilies(k)
@@ -99,7 +100,7 @@ class RepairManager():
             for keyspace in self._blacklist:
                 formatted_output.remove(keyspace)
 
-        return formatted_output
+        return sorted(formatted_output)
     
     def _get_columnfamilies(self, keyspace):
         cmd = ['cqlsh', self._cqlsh_ip, '-e', "select columnfamily_name from system.schema_columnfamilies WHERE keyspace_name='{}';".format(keyspace)]
