@@ -9,11 +9,12 @@ import subprocess
 import time
 import yaml
 
-from collections import OrderedDict()
+from collections import OrderedDict
 from datetime import timedelta
 from enum import Enum
 from sys import argv, exit
 
+J_FORMAT = "{}/{}.{}"
 
 class RepairManager():
     def __init__(self, config_file):
@@ -23,16 +24,18 @@ class RepairManager():
         try:
             host, port = self._redis_host.split(':')
             self._redis = redis.StrictRedis(host=host, port=port, db=0)
+            self._prep_redis()
         except:
             self._logger.critical("Unable to connect to redis")
             exit(1)
 
-        self._prep_redis()
-        self._check_for_nodetool()
-        self._keyspace_map = self._get_keyspace_info()
+        if not self._test:
+            self._check_for_nodetool()
+            self._keyspace_map = self._get_keyspace_info()
         self._failures = []
         self._start_time = None
         self._cluster_pause = 1
+
 
     def _prep_redis(self):
         self._redis.set('REPAIR_STATUS', 'running')
@@ -40,6 +43,15 @@ class RepairManager():
         self._redis.delete('REPAIR_CURRENT_JOB')
         self._redis.delete('REPAIR_FAILED_JOBS')
         self._redis.delete('REPAIR_TOTAL_TIME')
+        if self._recoverable_repair:
+            jobs = self._redis.get('REPAIR_COMPLETED_JOBS')
+            if not jobs:
+                self._completed_jobs = []
+            else:
+                self._completed_jobs = json.loads(jobs)
+        else:
+            self._redis.delete('REPAIR_COMPLETED_JOBS')
+            self._completed_jobs = []
 
     def _read_config(self, config_file):
         """
@@ -64,6 +76,8 @@ class RepairManager():
         self._blacklist = config.get('blacklist', [])
         self._cqlsh_ip = config.get('connect', self._hostlist[0])
         self._redis_host = config.get('redis', 'localhost:6379')
+        self._recoverable_repair = config.get('recoverable', True)
+        self._test = config.get('test', False)
 
     def _decode(self, value):
         """
@@ -115,12 +129,20 @@ class RepairManager():
             exit(1)
 
     def _add_failure(self, job):
-        f = "{}/{}.{}".format(job.host, job.keyspace, job.cf)
-        self._failures.append(f)
+        self._failures.append(job.format())
         self._redis.set("REPAIR_FAILED_JOBS", json.dumps(self._failures))
+
+    def _add_completed(self, job):
+        self._completed_jobs.append(job.format())
+        self._redis.set("REPAIR_COMPLETED_JOBS", json.dumps(self._completed_jobs))
+
+    def _was_completed(self, job):
+        return job.format() in self._completed_jobs
 
     def repair_all(self):
         self._logger.info("Starting a full repair.")
+        if self._recoverable_repair:
+            self._logger.info("Recoverable mode enabled! Previously completed repairs will be skipped.")
         self._logger.debug("Repairing {} keyspaces.".format(self._keyspace_map.keys()))
 
         self._start_time = time.time()
@@ -131,13 +153,20 @@ class RepairManager():
                 for host in self._hostlist:
 
                     # Run the repair
-                    self._redis.set("REPAIR_CURRENT_JOB", "{}/{}.{}".format(host, keyspace, cf))
                     job = RepairJob(host, keyspace, cf, self._default_timeout, self._retries)
+                    self._redis.set("REPAIR_CURRENT_JOB", job.format())
+
+                    # Skip previously completed repairs
+                    if self._recoverable_repair and self._was_completed(job):
+                        self._logger.info("{} previously completed for {}.{} with {} failures".format(host, keyspace, cf, result.failures))
+                        continue
+
                     result = job.run()
                     self._redis.delete("REPAIR_CURRENT_JOB")
 
                     if result.status is RepairJobStatus.SUCCESS:
                         self._logger.info("{} succeeded for {}.{} with {} failures".format(host, keyspace, cf, result.failures))
+                        self._add_completed(job)
                     elif result.status is RepairJobStatus.FAILED:
                         self._add_failure(job)
                     elif result.status is RepairJobStatus.TIMEOUT:
@@ -159,6 +188,7 @@ class RepairManager():
         else:
             self._redis.set("REPAIR_STATUS", "complete")
             self._redis.set("REPAIR_LAST_SUCCESSFUL_RUN", time.time())
+            self._redis.delete("REPAIR_COMPLETED_JOBS")
             self._logger.info("Repair completed in {} seconds.".format(str(timedelta(seconds=total_time))))
 
 
@@ -191,6 +221,9 @@ class RepairJob():
         self._failure_pause = 1
         self.status = None
         self.total_time = 0
+
+    def format(self):
+        return J_FORMAT.format(self.host, self.keyspace, self.cf)
 
     def _elapsed_time(self):
         return time.time() - self._start_time
