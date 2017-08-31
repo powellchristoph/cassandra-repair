@@ -25,8 +25,8 @@ class RepairManager():
             host, port = self._redis_host.split(':')
             self._redis = redis.StrictRedis(host=host, port=port, db=0)
             self._prep_redis()
-        except:
-            self._logger.critical("Unable to connect to redis")
+        except Exception as err:
+            self._logger.critical("Unable to connect to redis: '{}'".format(err))
             exit(1)
 
         if not self._test:
@@ -44,7 +44,7 @@ class RepairManager():
         self._redis.delete('REPAIR_FAILED_JOBS')
         self._redis.delete('REPAIR_TOTAL_TIME')
         if self._recoverable_repair:
-            jobs = self._redis.get('REPAIR_COMPLETED_JOBS')
+            jobs = self._redis.get('REPAIR_COMPLETED_JOBS').decode('utf-8')
             if not jobs:
                 self._completed_jobs = []
             else:
