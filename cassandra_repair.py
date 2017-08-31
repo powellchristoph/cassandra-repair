@@ -158,7 +158,7 @@ class RepairManager():
 
                     # Skip previously completed repairs
                     if self._recoverable_repair and self._was_completed(job):
-                        self._logger.info("{} previously completed for {}.{} with {} failures".format(host, keyspace, cf, result.failures))
+                        self._logger.info("{} previously completed for {}.{}".format(host, keyspace, cf))
                         continue
 
                     result = job.run()
