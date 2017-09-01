@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import redis
+import socket
 import subprocess
 import time
 import yaml
