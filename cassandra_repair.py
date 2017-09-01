@@ -45,11 +45,11 @@ class RepairManager():
         self._redis.delete('REPAIR_FAILED_JOBS')
         self._redis.delete('REPAIR_TOTAL_TIME')
         if self._recoverable_repair:
-            jobs = self._redis.get('REPAIR_COMPLETED_JOBS').decode('utf-8')
+            jobs = self._redis.get('REPAIR_COMPLETED_JOBS')
             if not jobs:
                 self._completed_jobs = []
             else:
-                self._completed_jobs = json.loads(jobs)
+                self._completed_jobs = json.loads(jobs.decode('utf-8'))
         else:
             self._redis.delete('REPAIR_COMPLETED_JOBS')
             self._completed_jobs = []
