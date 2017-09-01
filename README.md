@@ -5,6 +5,8 @@
 ### Requirements
 This requires that this process reach each cassandra node to execute `nodetool` and `cqlsh` commands. You must include **ALL** Cassandra nodes. Failure to do so will result in a portion of the ring not being repaired and data inconsistencies.
 
+**_NOTE:_** This script leverages 'abstract sockets' to ensure that only a single instance of the script is running at a time. This feature is Linux-specific and not POSIX in general.
+
 Fill in config.yaml with your cassandra nodes.
 ```
 # Default values included. The only required setting is "hosts"
