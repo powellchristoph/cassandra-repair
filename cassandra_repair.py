@@ -257,6 +257,16 @@ class RepairJob():
         logging.error("{}/{}.{} failed in {} sec, retries exhausted.".format(self.host, self.keyspace, self.cf, self.total_time))
         return RepairJobResult(RepairJobStatus.FAILED, self.total_time)
 
+def get_lock(process_name):
+    get_lock._lock_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    try:
+        get_lock._lock_socket.bind('\0' + process_name)
+        logging.info("Locked process: '{}'".format(process_name))
+        return True
+    except socket.error:
+        logging.critical("Unable to lock process: '{}'".format(process_name))
+        return False
+
 
 if __name__ == '__main__':
 
@@ -266,5 +276,9 @@ if __name__ == '__main__':
 
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
-    repair_manager = RepairManager(args.config_file)
-    repair_manager.repair_all()
+    if get_lock("cassandra-repair-utility"):
+        repair_manager = RepairManager(args.config_file)
+        repair_manager.repair_all()
+    else:
+        logging.critical("Another instance of repair is running!")
+        exit(1)
