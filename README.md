@@ -10,7 +10,7 @@ This requires that this process reach each cassandra node to execute `nodetool` 
 Fill in config.yaml with your cassandra nodes.
 ```
 # Default values included. The only required setting is "hosts"
-nodetool_path: /usr/bin/nodetool
+cassandra_bin: /usr/bin         # No trailing slash
 connect: <First host in hosts>
 timeout: 3600
 retries: 3
@@ -38,7 +38,7 @@ optional arguments:
 ```
 
 * `hosts` - yaml list of cassandra nodes. You must include all nodes. This is a required configuration setting.
-* `nodetool_path` - path to nodetool
+* `cassandra_bin` - path to cassandra's bin dir where nodetool/cqlsh are located. Default: /usr/bin
 * `connect` - The cassandra node that will be queried for keyspace/columnfamily information. Default is the first host from the hosts list.
 * `timeout` - Repairs are notorious for hanging. This will kill the repair job if it extents past this value in seconds. Currently, timed out jobs are not retried. Default: 3600 sec
 * `retries` - The number of times the job will retry a failure.

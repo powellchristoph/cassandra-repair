@@ -70,7 +70,7 @@ class RepairManager():
         if not config:
             config = {}
 
-        self._nodetool = config.get('nodetool_path', '/usr/bin/nodetool')
+        self._cassandra_bin = config.get('cassandra_bin', '/usr/bin')
         self._hostlist = config.get('hosts', ['127.0.0.1'])
         self._retries = config.get('retries', 3)
         self._default_timeout = config.get('timeout', 3600)
@@ -99,7 +99,7 @@ class RepairManager():
 
     def _get_keyspaces(self):
         try:
-            cmd = ['cqlsh', self._cqlsh_ip, '-e', 'DESC KEYSPACES']
+            cmd = [self._cassandra_bin + '/cqlsh', self._cqlsh_ip, '-e', 'DESC KEYSPACES']
             output = subprocess.check_output(cmd).strip().split()
         except subprocess.CalledProcessError as err:
             self._logger.critical("Unable to connect to cassandra at {}".format(self._cqlsh_ip))
@@ -118,15 +118,15 @@ class RepairManager():
         return sorted(formatted_output)
     
     def _get_columnfamilies(self, keyspace):
-        cmd = ['cqlsh', self._cqlsh_ip, '-e', "select columnfamily_name from system.schema_columnfamilies WHERE keyspace_name='{}';".format(keyspace)]
+        cmd = [self._cassandra_bin + '/cqlsh', self._cqlsh_ip, '-e', "select columnfamily_name from system.schema_columnfamilies WHERE keyspace_name='{}';".format(keyspace)]
         output = self._decode(subprocess.check_output(cmd)).strip().split('\n')
         formatted_output = map(str.strip, output[2:-2])
         return formatted_output
     
     def _check_for_nodetool(self):
         ''' Ensure nodetool command exists. '''
-        if not os.path.isfile(self._nodetool):
-            self._logger.critical("Unable to find nodetool command at %s" % nodetool)
+        if not os.path.isfile(self._cassandra_bin + '/nodetool'):
+            self._logger.critical("Unable to find nodetool command at %s" % self._cassandra_bin)
             exit(1)
 
     def _add_failure(self, job):
@@ -210,10 +210,11 @@ class RepairJobResult():
 
 
 class RepairJob():
-    def __init__(self, host, keyspace, columnfamily, timeout=3600, retries=3):
+    def __init__(self, host, keyspace, columnfamily, cassandra_bin, timeout=3600, retries=3):
         self.host = host
         self.keyspace = keyspace
         self.cf = columnfamily
+        self._cassandra_bin = cassandra_bin
         self._timeout = timeout
         self._retries = retries
         self._FNULL = open(os.devnull, 'w')
@@ -233,7 +234,7 @@ class RepairJob():
         self.total_time += self._elapsed_time()
 
     def run(self):
-        cmd = ['nodetool', '-h', self.host, 'repair', '-pr', self.keyspace, self.cf]
+        cmd = [self._cassandra_bin + '/nodetool', '-h', self.host, 'repair', '-pr', self.keyspace, self.cf]
         while self._attempts <= self._retries:
             logging.debug("{}/{}.{} starting attempt {} with {} sec timeout".format(self.host, self.keyspace, self.cf, self._attempts + 1, self._timeout))
             try:
