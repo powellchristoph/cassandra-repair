@@ -154,7 +154,7 @@ class RepairManager():
                 for host in self._hostlist:
 
                     # Run the repair
-                    job = RepairJob(host, keyspace, cf, self._default_timeout, self._retries)
+                    job = RepairJob(host, keyspace, cf, self._cassandra_bin, self._default_timeout, self._retries)
                     self._redis.set("REPAIR_CURRENT_JOB", job.format())
 
                     # Skip previously completed repairs
